@@ -55,14 +55,17 @@ public class Packager {
     /// 生成绑定素材
     /// </summary>
     public static void BuildAssetResource(BuildTarget target) {
+        //清除DataPath目录以及目录下所有文件
         if (Directory.Exists(Util.DataPath)) {
             Directory.Delete(Util.DataPath, true);
         }
+        //清除StreamingAssets目录以及目录下所有文件
         string streamPath = Application.streamingAssetsPath;
         if (Directory.Exists(streamPath)) {
             Directory.Delete(streamPath, true);
         }
         Directory.CreateDirectory(streamPath);
+        //Import any changed assets.（导入任何修改）
         AssetDatabase.Refresh();
 
         maps.Clear();
@@ -102,13 +105,18 @@ public class Packager {
     /// 处理Lua代码包
     /// </summary>
     static void HandleLuaBundle() {
+        //程序路径下创建一个临时目录LuaTempDir
         string streamDir = Application.dataPath + "/" + AppConst.LuaTempDir;
         if (!Directory.Exists(streamDir)) Directory.CreateDirectory(streamDir);
 
+        //CustomSettings.luaDir = "Assets\LuaFramework\Lua"   CustomSettings.FrameworkPat = "Assets\LuaFramework"
         string[] srcDirs = { CustomSettings.luaDir, CustomSettings.FrameworkPath + "/ToLua/Lua" };
+        //将 srcDirs 内容 复制到 streamDir（注意：要保证目录内的lua文件不重名，不然会造成覆盖）
         for (int i = 0; i < srcDirs.Length; i++) {
+            //使用的是lua字节码的情况下
             if (AppConst.LuaByteMode) {
                 string sourceDir = srcDirs[i];
+                //获取目录下所有文件名称
                 string[] files = Directory.GetFiles(sourceDir, "*.lua", SearchOption.AllDirectories);
                 int len = sourceDir.Length;
 
@@ -117,15 +125,22 @@ public class Packager {
                 }
                 for (int j = 0; j < files.Length; j++) {
                     string str = files[j].Remove(0, len);
+                    //生成目标路径
                     string dest = streamDir + str + ".bytes";
+                    //返回dest的目录信息
                     string dir = Path.GetDirectoryName(dest);
+                    //创建目录和子目录
                     Directory.CreateDirectory(dir);
+                    //通过源文件生成目标文件lua字节码
                     EncodeLuaFile(files[j], dest);
                 }    
             } else {
+                //将 lua 和 ToLua 内容复制到 streamDir 下
                 ToLuaMenu.CopyLuaBytesFiles(srcDirs[i], streamDir);
             }
         }
+        //获取所有路径名字
+        //将每个路径下的所有lua文件合并成一个AssetBundleBuild 映射
         string[] dirs = Directory.GetDirectories(streamDir, "*", SearchOption.AllDirectories);
         for (int i = 0; i < dirs.Length; i++) {
             string name = dirs[i].Replace(streamDir, string.Empty);
@@ -142,7 +157,9 @@ public class Packager {
         for (int i = 0; i < srcDirs.Length; i++) {
             paths.Clear(); files.Clear();
             string luaDataPath = srcDirs[i].ToLower();
+            //递归找到所有的文件名和文件路径
             Recursive(luaDataPath);
+            //将文件移动到StreamingAssets/lua/的相应文件夹目录下
             foreach (string f in files) {
                 if (f.EndsWith(".meta") || f.EndsWith(".lua")) continue;
                 string newfile = f.Replace(luaDataPath, "");
@@ -171,7 +188,7 @@ public class Packager {
     }
 
     /// <summary>
-    /// 处理Lua文件
+    /// 处理Lua文件,将 LuaFramework/lua/ 和 /LuaFramework/Tolua/Lua/ 里面lua文件复制到 StreamingAssets/lua/ 下面
     /// </summary>
     static void HandleLuaFile() {
         string resPath = AppDataPath + "/StreamingAssets/";
@@ -211,6 +228,9 @@ public class Packager {
         AssetDatabase.Refresh();
     }
 
+    /// <summary>
+    /// 生成所有文件的索引文件
+    /// </summary>
     static void BuildFileIndex() {
         string resPath = AppDataPath + "/StreamingAssets/";
         ///----------------------创建文件列表-----------------------
@@ -264,6 +284,11 @@ public class Packager {
         EditorUtility.DisplayProgressBar(title, desc, value);
     }
 
+    /// <summary>
+    /// 将lua文件生成字节码，windows平台用luajit，mac平台使用luac
+    /// </summary>
+    /// <param name="srcFile">源文件</param>
+    /// <param name="outFile">目标文件</param>
     public static void EncodeLuaFile(string srcFile, string outFile) {
         if (!srcFile.ToLower().EndsWith(".lua")) {
             File.Copy(srcFile, outFile, true);

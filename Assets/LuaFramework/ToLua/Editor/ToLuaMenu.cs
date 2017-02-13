@@ -940,7 +940,14 @@ public static class ToLuaMenu
 
         AssetDatabase.Refresh();
     }
-
+    /// <summary>
+    /// 将sourceDir内所有文件改名字后复制到destDir
+    /// </summary>
+    /// <param name="sourceDir"></param>
+    /// <param name="destDir"></param>
+    /// <param name="appendext"></param>
+    /// <param name="searchPattern"></param>
+    /// <param name="option"></param>
     public static void CopyLuaBytesFiles(string sourceDir, string destDir, bool appendext = true, string searchPattern = "*.lua", SearchOption option = SearchOption.AllDirectories)
     {
         if (!Directory.Exists(sourceDir))
